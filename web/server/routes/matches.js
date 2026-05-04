@@ -139,9 +139,10 @@ router.patch('/:id/evaluate', requireMod, async (req, res) => {
 async function notifyBotToPost(matchId) {
   const secret = process.env.INTERNAL_SECRET;
   const port   = process.env.INTERNAL_PORT ?? 3002;
+  const host   = process.env.BOT_INTERNAL_HOST ?? '127.0.0.1';
   try {
     await axios.post(
-      `http://127.0.0.1:${port}/post-match`,
+      `http://${host}:${port}/post-match`,
       { matchId },
       { headers: { 'x-internal-secret': secret } }
     );
