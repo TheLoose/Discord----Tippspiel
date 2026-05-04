@@ -9,9 +9,12 @@ const app        = express();
 const PORT       = process.env.WEB_PORT ?? 3001;
 const isProd     = process.env.NODE_ENV === 'production';
 
+// Required for Railway/any reverse proxy — allows secure cookies over HTTPS
+if (isProd) app.set('trust proxy', 1);
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors({
-  origin:      process.env.WEB_CLIENT_URL ?? 'http://localhost:5173',
+  origin:      isProd ? process.env.WEB_CLIENT_URL : 'http://localhost:5173',
   credentials: true
 }));
 app.use(express.json());

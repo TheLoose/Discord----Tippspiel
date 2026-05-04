@@ -67,8 +67,7 @@ router.get('/callback', async (req, res) => {
       isMod,
     };
 
-    res.redirect(process.env.WEB_CLIENT_URL ?? 'http://localhost:5173');
-  } catch (e) {
+    res.redirect(process.env.WEB_CLIENT_URL ?? 'http://localhost:5173');  } catch (e) {
     console.error('OAuth2 error:', e.response?.data ?? e.message);
     res.redirect('/auth/login?error=oauth_failed');
   }
