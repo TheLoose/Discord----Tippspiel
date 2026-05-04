@@ -109,8 +109,8 @@ function startInternalServer(client) {
     });
   });
 
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`🔒 Internal bot server listening on 0.0.0.0:${PORT}`);
+  server.listen(PORT, () => {
+    console.log(`🔒 Internal bot server listening on port ${PORT}`);
   });
 }
 
