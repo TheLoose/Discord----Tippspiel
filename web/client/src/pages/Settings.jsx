@@ -19,7 +19,13 @@ export default function Settings() {
         setModRoleId(s.data.mod_role_id ?? '');
         setRoles(r.data);
       })
-      .catch(e => setError(e.response?.data?.error ?? 'Failed to load settings'))
+      .catch(e => {
+        if (e.response?.status === 403) {
+          setError('🚫 You need Manage Server permission to access these settings.');
+        } else {
+          setError(e.response?.data?.error ?? 'Failed to load settings');
+        }
+      })
       .finally(() => setLoading(false));
   }, [activeGuild]);
 
@@ -41,6 +47,16 @@ export default function Settings() {
       <div style={{ fontSize: 48 }}>👈</div>
       <h2 style={{ color: '#fff', margin: '12px 0 8px' }}>Select a server first</h2>
       <p style={{ color: '#888' }}>Use the dropdown in the sidebar to pick a Discord server.</p>
+    </div>
+  );
+
+  if (loading) return <p style={{ color: '#888' }}>Loading...</p>;
+
+  if (error && error.includes('🚫')) return (
+    <div style={styles.empty}>
+      <div style={{ fontSize: 48 }}>🔒</div>
+      <h2 style={{ color: '#fff', margin: '12px 0 8px' }}>Access Denied</h2>
+      <p style={{ color: '#888' }}>You need <strong style={{ color: '#fff' }}>Manage Server</strong> permission in this Discord server to access settings.</p>
     </div>
   );
 
