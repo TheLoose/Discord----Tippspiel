@@ -63,15 +63,38 @@ router.post('/', requireMod, async (req, res) => {
   const [league] = await query('SELECT * FROM leagues WHERE id = ? AND guild_id = ?', [league_id, guildId]);
   if (!league) return res.status(404).json({ error: 'League not found' });
   try {
-    const tz = process.env.TIMEZONE ?? 'Europe/Berlin';
     let initialStatus = 'open';
     let parsedDate = null;
 
     if (match_date) {
-      parsedDate = new Date(match_date);
-      const now = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
+      // The browser sends datetime-local as "2026-05-10T20:00" (no timezone info)
+      // We interpret this as Europe/Berlin local time by finding the UTC offset
+      // and adjusting accordingly so MySQL stores the correct UTC time
+      const tz = process.env.TIMEZONE ?? 'Europe/Berlin';
+
+      // Parse the naive datetime string as if it were UTC first
+      const naiveDate = new Date(match_date + ':00Z');
+
+      // Find what UTC offset Europe/Berlin has at that moment
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+      });
+      const parts = formatter.formatToParts(naiveDate);
+      const get = type => parseInt(parts.find(p => p.type === type).value);
+      const localEquiv = new Date(Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')));
+      const offsetMs = localEquiv - naiveDate;
+
+      // Subtract the offset to get the correct UTC time for storage
+      parsedDate = new Date(naiveDate.getTime() - offsetMs);
+
+      const now       = new Date();
+      const nowLocal  = new Date(now.toLocaleString('en-US', { timeZone: tz }));
       const matchLocal = new Date(parsedDate.toLocaleString('en-US', { timeZone: tz }));
-      if (matchLocal.toDateString() !== now.toDateString() && parsedDate > now) {
+
+      if (matchLocal.toDateString() !== nowLocal.toDateString() && parsedDate > now) {
         initialStatus = 'scheduled';
       }
     }
