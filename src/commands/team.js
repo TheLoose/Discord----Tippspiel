@@ -54,7 +54,7 @@ module.exports = {
       const name     = interaction.options.getString('name').trim();
       const emoji    = interaction.options.getString('emoji').trim();
 
-      const [league] = await query('SELECT * FROM leagues WHERE id = ? AND active = true', [leagueId]);
+      const [league] = await query('SELECT * FROM leagues WHERE id = ? AND active = true AND guild_id = ?', [leagueId, interaction.guildId]);
       if (!league) {
         return interaction.reply({ content: `❌ League ID ${leagueId} not found.`, ephemeral: true });
       }
@@ -153,8 +153,8 @@ module.exports = {
       const fromLeagueId = interaction.options.getInteger('from_league_id');
       const toLeagueId   = interaction.options.getInteger('to_league_id');
 
-      const [fromLeague] = await query('SELECT * FROM leagues WHERE id = ?', [fromLeagueId]);
-      const [toLeague]   = await query('SELECT * FROM leagues WHERE id = ?', [toLeagueId]);
+      const [fromLeague] = await query('SELECT * FROM leagues WHERE id = ? AND guild_id = ?', [fromLeagueId, interaction.guildId]);
+      const [toLeague]   = await query('SELECT * FROM leagues WHERE id = ? AND guild_id = ?', [toLeagueId, interaction.guildId]);
 
       if (!fromLeague) return interaction.reply({ content: `❌ From-league ID ${fromLeagueId} not found.`, ephemeral: true });
       if (!toLeague)   return interaction.reply({ content: `❌ To-league ID ${toLeagueId} not found.`, ephemeral: true });

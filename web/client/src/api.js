@@ -10,6 +10,10 @@ export const auth = {
   logout:   () => axios.post('/auth/logout', {}, { withCredentials: true }),
   emojis:   () => axios.get('/auth/emojis',   { withCredentials: true }),
   channels: () => axios.get('/auth/channels', { withCredentials: true }),
+  guilds:   () => axios.get('/auth/guilds',   { withCredentials: true }),
+  getGuild: () => axios.get('/auth/guild',    { withCredentials: true }),
+  setGuild: (guild_id, guild_name, guild_icon) =>
+    axios.post('/auth/guild', { guild_id, guild_name, guild_icon }, { withCredentials: true }),
 };
 
 export const leagues     = {

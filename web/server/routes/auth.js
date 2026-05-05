@@ -59,12 +59,13 @@ router.get('/callback', async (req, res) => {
 
     // Save to session
     req.session.user = {
-      id:       discordUser.id,
-      username: discordUser.username,
-      avatar:   discordUser.avatar
+      id:          discordUser.id,
+      username:    discordUser.username,
+      avatar:      discordUser.avatar
         ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
         : null,
       isMod,
+      accessToken: access_token,
     };
 
     res.redirect(process.env.WEB_CLIENT_URL ?? 'http://localhost:5173');  } catch (e) {
@@ -118,3 +119,42 @@ router.get('/emojis', async (req, res) => {
 });
 
 module.exports = router;
+
+// Fetch guilds the user shares with the bot (for guild switcher)
+router.get('/guilds', async (req, res) => {
+  if (!req.session?.user) return res.status(401).json({ error: 'Not authenticated' });
+  try {
+    // Get all guilds the bot is in
+    const botGuildsRes = await axios.get(`${DISCORD_API}/users/@me/guilds`, {
+      headers: { Authorization: `Bot ${BOT_TOKEN}` }
+    });
+    const botGuildIds = new Set(botGuildsRes.data.map(g => g.id));
+
+    // Get guilds the user is in where they have Manage Server or are mod
+    const userGuildsRes = await axios.get(`${DISCORD_API}/users/@me/guilds`, {
+      headers: { Authorization: `Bearer ${req.session.user.accessToken}` }
+    });
+
+    // Filter to guilds where bot is present
+    const shared = userGuildsRes.data.filter(g => botGuildIds.has(g.id));
+    res.json(shared);
+  } catch (e) {
+    console.error('Failed to fetch guilds:', e.message);
+    res.status(500).json({ error: 'Failed to fetch guilds' });
+  }
+});
+
+// Set active guild for this session
+router.post('/guild', (req, res) => {
+  if (!req.session?.user) return res.status(401).json({ error: 'Not authenticated' });
+  const { guild_id, guild_name, guild_icon } = req.body;
+  if (!guild_id) return res.status(400).json({ error: 'guild_id required' });
+  req.session.activeGuild = { id: guild_id, name: guild_name, icon: guild_icon };
+  res.json({ ok: true });
+});
+
+// Get active guild
+router.get('/guild', (req, res) => {
+  if (!req.session?.user) return res.status(401).json({ error: 'Not authenticated' });
+  res.json({ guild: req.session.activeGuild ?? null });
+});

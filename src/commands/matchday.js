@@ -21,14 +21,14 @@ async function evaluateMatch(client, match, winnerSide) {
     if (isCorrect) correct++; else wrong++;
 
     await query(
-      `INSERT INTO points (user_id, league_id, username, total, correct, total_votes)
-       VALUES (?, ?, ?, ?, ?, 1)
+      `INSERT INTO points (user_id, guild_id, league_id, username, total, correct, total_votes)
+       VALUES (?, ?, ?, ?, ?, ?, 1)
        ON DUPLICATE KEY UPDATE
          username    = VALUES(username),
          total       = total + VALUES(total),
          correct     = correct + VALUES(correct),
          total_votes = total_votes + 1`,
-      [vote.user_id, match.league_id, vote.username, isCorrect ? 1 : 0, isCorrect ? 1 : 0]
+      [vote.user_id, match.guild_id, match.league_id, vote.username, isCorrect ? 1 : 0, isCorrect ? 1 : 0]
     );
   }
 
@@ -222,7 +222,7 @@ module.exports = {
       // Join teams so we have names + emojis
       const matches = await query(
         `SELECT m.*,
-                l.name AS league_name, l.emoji AS league_emoji,
+                l.name AS league_name, l.emoji AS league_emoji, l.guild_id,
                 t1.name AS team_a, t1.emoji AS team_a_emoji,
                 t2.name AS team_b, t2.emoji AS team_b_emoji
          FROM matches m

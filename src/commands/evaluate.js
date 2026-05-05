@@ -30,7 +30,7 @@ module.exports = {
 
     const [match] = await query(
       `SELECT m.*,
-              l.name AS league_name, l.emoji AS league_emoji,
+              l.name AS league_name, l.emoji AS league_emoji, l.guild_id,
               t1.name AS team_a, t1.emoji AS team_a_emoji,
               t2.name AS team_b, t2.emoji AS team_b_emoji
        FROM matches m

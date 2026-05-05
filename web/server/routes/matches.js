@@ -6,6 +6,7 @@ const { requireAuth, requireMod } = require('../middleware/auth');
 
 const MATCH_SELECT = `
   SELECT m.*,
+         l.guild_id,
          l.name AS league_name, l.emoji AS league_emoji,
          md.label AS matchday_label,
          t1.name AS team_a, t1.emoji AS team_a_emoji,
@@ -117,12 +118,12 @@ router.patch('/:id/evaluate', requireMod, async (req, res) => {
       const isCorrect = vote.team === winner;
       if (isCorrect) correct++; else wrong++;
       await query(
-        `INSERT INTO points (user_id, league_id, username, total, correct, total_votes)
-         VALUES (?, ?, ?, ?, ?, 1)
+        `INSERT INTO points (user_id, guild_id, league_id, username, total, correct, total_votes)
+         VALUES (?, ?, ?, ?, ?, ?, 1)
          ON DUPLICATE KEY UPDATE
            username = VALUES(username), total = total + VALUES(total),
            correct = correct + VALUES(correct), total_votes = total_votes + 1`,
-        [vote.user_id, match.league_id, vote.username, isCorrect ? 1 : 0, isCorrect ? 1 : 0]
+        [vote.user_id, match.guild_id, match.league_id, vote.username, isCorrect ? 1 : 0, isCorrect ? 1 : 0]
       );
     }
 

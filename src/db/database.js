@@ -22,11 +22,13 @@ async function initDB() {
   await query(`
     CREATE TABLE IF NOT EXISTS leagues (
       id         INT AUTO_INCREMENT PRIMARY KEY,
+      guild_id   VARCHAR(100) NOT NULL,
       name       VARCHAR(100) NOT NULL,
       emoji      VARCHAR(50),
       channel_id VARCHAR(100),
       active     BOOLEAN DEFAULT true,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_guild (guild_id)
     )
   `);
 
@@ -93,12 +95,14 @@ async function initDB() {
   await query(`
     CREATE TABLE IF NOT EXISTS points (
       user_id     VARCHAR(100) NOT NULL,
+      guild_id    VARCHAR(100) NOT NULL,
       league_id   INT NOT NULL,
       username    VARCHAR(100) NOT NULL,
       total       INT DEFAULT 0,
       correct     INT DEFAULT 0,
       total_votes INT DEFAULT 0,
       PRIMARY KEY (user_id, league_id),
+      INDEX idx_guild (guild_id),
       FOREIGN KEY (league_id) REFERENCES leagues(id)
     )
   `);

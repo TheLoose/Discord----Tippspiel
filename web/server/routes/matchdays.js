@@ -3,8 +3,12 @@ const router  = express.Router();
 const { query } = require('../../../src/db/database');
 const { requireAuth, requireMod } = require('../middleware/auth');
 
-// GET matchdays, optionally filtered by league
+const getGuildId = req => req.session?.activeGuild?.id;
+
+// GET matchdays scoped to guild via league join
 router.get('/', requireAuth, async (req, res) => {
+  const guildId = getGuildId(req);
+  if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
   try {
     const { league_id } = req.query;
     let sql = `
@@ -14,21 +18,24 @@ router.get('/', requireAuth, async (req, res) => {
       FROM matchdays md
       JOIN leagues l ON md.league_id = l.id
       LEFT JOIN matches m ON m.matchday_id = md.id
+      WHERE l.guild_id = ?
     `;
-    const params = [];
-    if (league_id) { sql += ' WHERE md.league_id = ?'; params.push(league_id); }
+    const params = [guildId];
+    if (league_id) { sql += ' AND md.league_id = ?'; params.push(league_id); }
     sql += ' GROUP BY md.id ORDER BY l.name, md.number';
     res.json(await query(sql, params));
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST create matchday
+// POST create matchday — verify league belongs to guild
 router.post('/', requireMod, async (req, res) => {
+  const guildId = getGuildId(req);
+  if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
   const { league_id, number, label, channel_id } = req.body;
   if (!league_id || !number) return res.status(400).json({ error: 'league_id and number are required' });
   try {
+    const [league] = await query('SELECT * FROM leagues WHERE id = ? AND guild_id = ?', [league_id, guildId]);
+    if (!league) return res.status(404).json({ error: 'League not found' });
     const resolvedLabel = label ?? `Matchday ${number}`;
     const result = await query(
       'INSERT INTO matchdays (league_id, number, label, channel_id) VALUES (?, ?, ?, ?)',
@@ -49,9 +56,7 @@ router.patch('/:id/close', requireMod, async (req, res) => {
     await query(`UPDATE matchdays SET status = 'closed' WHERE id = ?`, [req.params.id]);
     const [matchday] = await query('SELECT * FROM matchdays WHERE id = ?', [req.params.id]);
     res.json(matchday);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

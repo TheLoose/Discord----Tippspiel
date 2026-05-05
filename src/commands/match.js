@@ -11,11 +11,11 @@ module.exports = {
       sub.setName('create')
         .setDescription('Post a new match prediction')
         .addIntegerOption(opt => opt.setName('league_id').setDescription('League ID (use /league list)').setRequired(true))
-        .addIntegerOption(opt => opt.setName('matchday_id').setDescription('Matchday ID to group this match under').setRequired(true))
         .addStringOption(opt => opt.setName('team_a').setDescription('Team A name').setRequired(true))
         .addStringOption(opt => opt.setName('team_a_emoji').setDescription('Team A emoji').setRequired(true))
         .addStringOption(opt => opt.setName('team_b').setDescription('Team B name').setRequired(true))
         .addStringOption(opt => opt.setName('team_b_emoji').setDescription('Team B emoji').setRequired(true))
+        .addIntegerOption(opt => opt.setName('matchday_id').setDescription('Matchday ID to group this match under').setRequired(false))
         .addChannelOption(opt => opt.setName('channel').setDescription('Channel to post in (overrides league/matchday default)').setRequired(false))
         .addStringOption(opt => opt.setName('date').setDescription('Match date (YYYY-MM-DD HH:MM)').setRequired(false))
     )
@@ -52,7 +52,7 @@ module.exports = {
       const channelOpt = interaction.options.getChannel('channel');
 
       // Validate league
-      const [league] = await query('SELECT * FROM leagues WHERE id = ? AND active = true', [leagueId]);
+      const [league] = await query('SELECT * FROM leagues WHERE id = ? AND active = true AND guild_id = ?', [leagueId, interaction.guildId]);
       if (!league) {
         return interaction.reply({ content: `❌ League ID ${leagueId} not found.`, ephemeral: true });
       }

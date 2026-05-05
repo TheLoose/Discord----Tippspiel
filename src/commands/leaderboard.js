@@ -8,26 +8,26 @@ module.exports = {
     .setName('leaderboard')
     .setDescription('Show the leaderboard for a league')
     .addIntegerOption(opt =>
-      opt.setName('league_id')
-        .setDescription('League ID (use /league list to see IDs)')
-        .setRequired(true)
+      opt.setName('league_id').setDescription('League ID (use /league list)').setRequired(true)
     ),
 
   async execute(interaction) {
     const leagueId = interaction.options.getInteger('league_id');
+    const guildId  = interaction.guildId;
 
-    const [league] = await query('SELECT * FROM leagues WHERE id = ?', [leagueId]);
+    const [league] = await query(
+      'SELECT * FROM leagues WHERE id = ? AND guild_id = ?',
+      [leagueId, guildId]
+    );
     if (!league) {
       return interaction.reply({ content: `❌ League ID ${leagueId} not found.`, ephemeral: true });
     }
 
     const rows = await query(
       `SELECT username, total, correct, total_votes
-       FROM points
-       WHERE league_id = ?
-       ORDER BY total DESC, correct DESC
-       LIMIT 10`,
-      [leagueId]
+       FROM points WHERE league_id = ? AND guild_id = ?
+       ORDER BY total DESC, correct DESC LIMIT 10`,
+      [leagueId, guildId]
     );
 
     if (!rows.length) {
@@ -39,9 +39,7 @@ module.exports = {
 
     const lines = rows.map((row, i) => {
       const medal    = MEDALS[i] ?? `**${i + 1}.**`;
-      const accuracy = row.total_votes > 0
-        ? Math.round((row.correct / row.total_votes) * 100)
-        : 0;
+      const accuracy = row.total_votes > 0 ? Math.round((row.correct / row.total_votes) * 100) : 0;
       return `${medal} **${row.username}** — ${row.total} pts · ${row.correct}/${row.total_votes} correct (${accuracy}%)`;
     });
 

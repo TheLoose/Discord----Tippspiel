@@ -49,13 +49,13 @@ module.exports = {
 
     // ── CREATE FLOW ──────────────────────────────────────────────────────────
     if (sub === 'create') {
-  if (!isModerator(interaction.member)) {
-    return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
-  }
+      if (!isModerator(interaction.member)) {
+        return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
+      }
 
-  // ── Step 1: League select ──────────────────────────────────────────────
-  const leagues = await query('SELECT * FROM leagues WHERE active = true ORDER BY name');
-    console.log('DEBUG: leagues fetched:', leagues.length);
+      // ── Step 1: League select ──────────────────────────────────────────────
+      const guildId = interaction.guildId;
+      const leagues = await query('SELECT * FROM leagues WHERE active = true AND guild_id = ? ORDER BY name', [guildId]);
       if (!leagues.length) {
         return interaction.reply({ content: '❌ No active leagues found. Create one with `/league create`.', ephemeral: true });
       }
@@ -411,7 +411,7 @@ module.exports = {
         [matchId]
       );
 
-      if (!match) return interaction.reply({ content: `❌ Match ID ${matchId} not found.`, ephemeral: true });
+      if (!match || match.guild_id !== interaction.guildId) return interaction.reply({ content: `❌ Match ID ${matchId} not found.`, ephemeral: true });
       if (match.status !== 'open') return interaction.reply({ content: `❌ Match is already ${match.status}.`, ephemeral: true });
 
       await query('UPDATE matches SET status = ? WHERE id = ?', ['closed', matchId]);
