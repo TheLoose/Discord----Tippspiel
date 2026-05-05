@@ -1,9 +1,20 @@
+import { useOutletContext } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { leaderboard as lbApi, leagues as leaguesApi } from '../api';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export default function Leaderboard() {
+  const { activeGuild } = useOutletContext() ?? {};
+
+  if (!activeGuild) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', textAlign: 'center' }}>
+      <div style={{ fontSize: 48 }}>👈</div>
+      <h2 style={{ color: '#fff', margin: '12px 0 8px' }}>Select a server first</h2>
+      <p style={{ color: '#888' }}>Use the dropdown in the sidebar to pick a Discord server.</p>
+    </div>
+  );
+
   const [allLeagues, setAllLeagues] = useState([]);
   const [leagueId, setLeagueId]     = useState('');
   const [data, setData]             = useState([]);

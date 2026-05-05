@@ -3,8 +3,19 @@ import { leagues as leaguesApi } from '../api';
 import EmojiPicker from '../components/EmojiPicker';
 import ChannelPicker from '../components/ChannelPicker';
 import { useAuth } from '../hooks/useAuth';
+import { useOutletContext } from 'react-router-dom';
 
 export default function Leagues() {
+  const { activeGuild } = useOutletContext() ?? {};
+
+  if (!activeGuild) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', textAlign: 'center' }}>
+      <div style={{ fontSize: 48 }}>👈</div>
+      <h2 style={{ color: '#fff', margin: '12px 0 8px' }}>Select a server first</h2>
+      <p style={{ color: '#888' }}>Use the dropdown in the sidebar to pick a Discord server.</p>
+    </div>
+  );
+
   const { user }                  = useAuth();
   const [data, setData]           = useState([]);
   const [name, setName]           = useState('');

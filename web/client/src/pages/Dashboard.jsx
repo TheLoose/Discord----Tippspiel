@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { leagues, matches, leaderboard } from '../api';
-import { Link } from 'react-router-dom';
+import { leagues, matches } from '../api';
+import { Link, useOutletContext } from 'react-router-dom';
 
 function StatCard({ label, value, color }) {
   return (
@@ -12,11 +12,14 @@ function StatCard({ label, value, color }) {
 }
 
 export default function Dashboard() {
+  const { activeGuild }           = useOutletContext() ?? {};
   const [stats, setStats]         = useState(null);
   const [openMatches, setOpenMatches] = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [loading, setLoading]     = useState(false);
 
   useEffect(() => {
+    if (!activeGuild) return;
+    setLoading(true);
     Promise.all([
       leagues.list(),
       matches.list({ status: 'open' }),
@@ -24,20 +27,28 @@ export default function Dashboard() {
       matches.list({}),
     ]).then(([lg, open, closed, all]) => {
       setStats({
-        leagues:  lg.data.length,
-        open:     open.data.length,
-        closed:   closed.data.length,
-        total:    all.data.length,
+        leagues: lg.data.length,
+        open:    open.data.length,
+        closed:  closed.data.length,
+        total:   all.data.length,
       });
       setOpenMatches(open.data.slice(0, 5));
-    }).finally(() => setLoading(false));
-  }, []);
+    }).catch(() => {}).finally(() => setLoading(false));
+  }, [activeGuild]);
 
-  if (loading) return <p style={{ color: '#888' }}>Loading...</p>;
+  if (!activeGuild) return (
+    <div style={styles.empty}>
+      <div style={{ fontSize: 48 }}>👈</div>
+      <h2 style={{ color: '#fff', margin: '12px 0 8px' }}>Select a server first</h2>
+      <p style={{ color: '#888' }}>Use the dropdown in the sidebar to pick a Discord server.</p>
+    </div>
+  );
+
+  if (loading || !stats) return <p style={{ color: '#888' }}>Loading...</p>;
 
   return (
     <div>
-      <h1 style={styles.heading}>Dashboard</h1>
+      <h1 style={styles.heading}>Dashboard — {activeGuild.name}</h1>
       <div style={styles.statsRow}>
         <StatCard label="Active Leagues"    value={stats.leagues} color="#5865f2" />
         <StatCard label="Open Matches"      value={stats.open}    color="#57f287" />
@@ -72,13 +83,10 @@ const styles = {
   card:       { background: '#1e2228', borderRadius: 10, padding: '20px 24px', border: '1px solid #2a2f38' },
   cardValue:  { color: '#fff', fontSize: 32, fontWeight: 700 },
   cardLabel:  { color: '#888', fontSize: 13, marginTop: 4 },
-  matchRow:   {
-    display: 'flex', alignItems: 'center', gap: 16,
-    background: '#1e2228', borderRadius: 8, padding: '12px 16px',
-    marginBottom: 8, border: '1px solid #2a2f38',
-  },
+  matchRow:   { display: 'flex', alignItems: 'center', gap: 16, background: '#1e2228', borderRadius: 8, padding: '12px 16px', marginBottom: 8, border: '1px solid #2a2f38' },
   leagueBadge: { color: '#5865f2', fontSize: 13, minWidth: 140 },
   matchTeams:  { color: '#fff', fontSize: 14, flex: 1 },
   votes:       { color: '#888', fontSize: 13 },
   seeAll:      { display: 'inline-block', marginTop: 12, color: '#5865f2', textDecoration: 'none', fontSize: 14 },
+  empty:       { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', textAlign: 'center' },
 };

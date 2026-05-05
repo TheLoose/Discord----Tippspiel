@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { teams as teamsApi, leagues as leaguesApi } from '../api';
 import EmojiPicker from '../components/EmojiPicker';
 import { useAuth } from '../hooks/useAuth';
+import { useOutletContext } from 'react-router-dom';
 
 function renderEmoji(emoji) {
   const match = emoji?.match(/^<a?:(\w+):(\d+)>$/);
@@ -13,6 +14,16 @@ function renderEmoji(emoji) {
 }
 
 export default function Teams() {
+  const { activeGuild } = useOutletContext() ?? {};
+
+  if (!activeGuild) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', textAlign: 'center' }}>
+      <div style={{ fontSize: 48 }}>👈</div>
+      <h2 style={{ color: '#fff', margin: '12px 0 8px' }}>Select a server first</h2>
+      <p style={{ color: '#888' }}>Use the dropdown in the sidebar to pick a Discord server.</p>
+    </div>
+  );
+
   const { user }              = useAuth();
   const [data, setData]       = useState([]);
   const [allLeagues, setAllLeagues] = useState([]);
