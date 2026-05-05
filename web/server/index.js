@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../../.env' });
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const cors    = require('cors');
@@ -30,12 +30,13 @@ app.use(session({
 }));
 
 // ── API Routes ────────────────────────────────────────────────────────────────
-app.use('/auth',            require('./routes/auth'));
-app.use('/api/leagues',     require('./routes/leagues'));
-app.use('/api/teams',       require('./routes/teams'));
-app.use('/api/matchdays',   require('./routes/matchdays'));
-app.use('/api/matches',     require('./routes/matches'));
-app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/auth',             require('./routes/auth'));
+app.use('/api/leagues',      require('./routes/leagues'));
+app.use('/api/teams',        require('./routes/teams'));
+app.use('/api/matchdays',    require('./routes/matchdays'));
+app.use('/api/matches',      require('./routes/matches'));
+app.use('/api/leaderboard',  require('./routes/leaderboard'));
+app.use('/api/settings',     require('./routes/settings'));
 
 app.get('/health', (_, res) => res.json({ ok: true }));
 
