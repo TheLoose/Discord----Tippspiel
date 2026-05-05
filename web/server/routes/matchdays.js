@@ -59,3 +59,6 @@ router.patch('/:id/close', requireMod, async (req, res) => {
     res.json(matchday);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+
+module.exports = router;
