@@ -38,7 +38,7 @@ module.exports = {
 
     // ── CREATE ───────────────────────────────────────────────────────────────
     if (sub === 'create') {
-      if (!isModerator(interaction.member)) {
+      if (!(await isModerator(interaction.member))) {
         return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
       }
 
@@ -108,7 +108,7 @@ module.exports = {
 
     // ── CLOSE ────────────────────────────────────────────────────────────────
     if (sub === 'close') {
-      if (!isModerator(interaction.member)) {
+      if (!(await isModerator(interaction.member))) {
         return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
       }
 

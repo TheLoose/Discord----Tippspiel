@@ -33,6 +33,7 @@ export const matchdays = {
   list:   (leagueId) => api.get('/matchdays', { params: { league_id: leagueId } }),
   create: (data)     => api.post('/matchdays', data),
   close:  (id)       => api.patch(`/matchdays/${id}/close`),
+  post:   (id)       => api.post(`/matchdays/${id}/post`),
 };
 
 export const matches = {
@@ -41,6 +42,13 @@ export const matches = {
   create:   (data)         => api.post('/matches', data),
   close:    (id)           => api.patch(`/matches/${id}/close`),
   evaluate: (id, winner)   => api.patch(`/matches/${id}/evaluate`, { winner }),
+  post:     (id)           => api.post(`/matches/${id}/post`),
+};
+
+export const settings = {
+  get:      ()       => api.get('/settings'),
+  save:     (data)   => api.post('/settings', data),
+  roles:    ()       => api.get('/settings/roles'),
 };
 
 export const leaderboard = {

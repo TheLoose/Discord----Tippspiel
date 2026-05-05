@@ -89,6 +89,15 @@ export default function Matches() {
     loadMatches();
   };
 
+  const postMatchNow = async id => {
+    try {
+      await matchesApi.post(id);
+      loadMatches();
+    } catch (e) {
+      alert('❌ ' + (e.response?.data?.error ?? 'Failed to post match'));
+    }
+  };
+
   const evaluate = async (id, winner) => {
     try {
       await matchesApi.evaluate(id, winner);
@@ -195,6 +204,9 @@ export default function Matches() {
 
             {user?.isMod && (
               <div style={styles.actions}>
+                {m.status === 'scheduled' && (
+                  <button onClick={() => postMatchNow(m.id)} style={styles.btnBlue}>📢 Post now</button>
+                )}
                 {m.status === 'open' && (
                   <button onClick={() => closeMatch(m.id)} style={styles.ghostBtn}>🔒 Close</button>
                 )}
@@ -232,6 +244,7 @@ const styles = {
   btn:        { padding: '8px 16px', borderRadius: 8, background: '#5865f2', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13 },
   btnGreen:   { padding: '5px 12px', borderRadius: 6, background: '#57f28720', border: '1px solid #57f287', color: '#57f287', cursor: 'pointer', fontSize: 12 },
   ghostBtn:   { padding: '5px 12px', borderRadius: 6, background: 'none', border: '1px solid #3a3f47', color: '#aaa', cursor: 'pointer', fontSize: 12 },
+  btnBlue:    { padding: '5px 12px', borderRadius: 6, background: '#5865f220', border: '1px solid #5865f2', color: '#5865f2', cursor: 'pointer', fontSize: 12 },
   error:      { color: '#ed4245', fontSize: 13, marginBottom: 10 },
   filterRow:  { display: 'flex', gap: 12, marginBottom: 16 },
   list:       { display: 'flex', flexDirection: 'column', gap: 8 },

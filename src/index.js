@@ -1,46 +1,55 @@
-require('dotenv').config();
-const fs   = require('fs');
-const path = require('path');
-const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
-const { initDB } = require('./db/database');
+require('dotenv').config({ path: '../../.env' });
+const express = require('express');
+const session = require('express-session');
+const cors    = require('cors');
+const path    = require('path');
+const { initDB } = require('../../src/db/database');
 
-// ── Create client ─────────────────────────────────────────────────────────────
-// Partials are required to receive reactions on messages that aren't cached
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.GuildMessageReactions,
-    GatewayIntentBits.MessageContent,
-  ],
-  partials: [Partials.Message, Partials.Channel, Partials.Reaction],
-});
+const app        = express();
+const PORT       = process.env.WEB_PORT ?? 3001;
+const isProd     = process.env.NODE_ENV === 'production';
 
-// ── Load commands ─────────────────────────────────────────────────────────────
-client.commands = new Collection();
-const commandsPath = path.join(__dirname, 'commands');
+// Required for Railway/any reverse proxy — allows secure cookies over HTTPS
+if (isProd) app.set('trust proxy', 1);
 
-for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))) {
-  const command = require(path.join(commandsPath, file));
-  client.commands.set(command.data.name, command);
-  console.log(`📌 Loaded command: /${command.data.name}`);
-}
-
-// ── Load events ───────────────────────────────────────────────────────────────
-const eventsPath = path.join(__dirname, 'events');
-
-for (const file of fs.readdirSync(eventsPath).filter(f => f.endsWith('.js'))) {
-  const event = require(path.join(eventsPath, file));
-  if (event.once) {
-    client.once(event.name, (...args) => event.execute(...args));
-  } else {
-    client.on(event.name, (...args) => event.execute(...args));
+// ── Middleware ────────────────────────────────────────────────────────────────
+app.use(cors({
+  origin:      isProd ? process.env.WEB_CLIENT_URL : 'http://localhost:5173',
+  credentials: true
+}));
+app.use(express.json());
+app.use(session({
+  secret:            process.env.SESSION_SECRET ?? 'change-this-secret',
+  resave:            false,
+  saveUninitialized: false,
+  cookie: {
+    secure:   isProd,   // true in production (HTTPS), false locally
+    httpOnly: true,
+    maxAge:   1000 * 60 * 60 * 24 * 7  // 7 days
   }
-  console.log(`⚡ Loaded event: ${event.name}`);
+}));
+
+// ── API Routes ────────────────────────────────────────────────────────────────
+app.use('/auth',             require('./routes/auth'));
+app.use('/api/leagues',      require('./routes/leagues'));
+app.use('/api/teams',        require('./routes/teams'));
+app.use('/api/matchdays',    require('./routes/matchdays'));
+app.use('/api/matches',      require('./routes/matches'));
+app.use('/api/leaderboard',  require('./routes/leaderboard'));
+app.use('/api/settings',     require('./routes/settings'));
+
+app.get('/health', (_, res) => res.json({ ok: true }));
+
+// ── Serve React app in production ─────────────────────────────────────────────
+if (isProd) {
+  const clientDist = path.join(__dirname, '../client/dist');
+  app.use(express.static(clientDist));
+  // Any route not matched by API returns the React app
+  app.get('*', (_, res) => res.sendFile(path.join(clientDist, 'index.html')));
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 (async () => {
   await initDB();
-  await client.login(process.env.DISCORD_TOKEN);
+  app.listen(PORT, () => console.log(`🌐 Web server running on http://localhost:${PORT}`));
 })();

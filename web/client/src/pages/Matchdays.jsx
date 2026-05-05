@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { matchdays as matchdaysApi, leagues as leaguesApi } from '../api';
+import { useState as usePostState } from 'react';
 import ChannelPicker from '../components/ChannelPicker';
 import { useAuth } from '../hooks/useAuth';
 import { useOutletContext } from 'react-router-dom';
@@ -53,6 +54,20 @@ export default function Matchdays() {
     load();
   };
 
+  const [posting, setPosting] = useState(null);
+  const postMatchday = async id => {
+    setPosting(id);
+    try {
+      const r = await matchdaysApi.post(id);
+      alert(`✅ Posted ${r.data.posted} match(es) to Discord!`);
+      load();
+    } catch (e) {
+      alert('❌ ' + (e.response?.data?.error ?? 'Failed to post'));
+    } finally {
+      setPosting(null);
+    }
+  };
+
   return (
     <div>
       <h1 style={styles.heading}>Matchdays</h1>
@@ -91,8 +106,19 @@ export default function Matchdays() {
             <span style={{ ...styles.badge, background: STATUS_COLOR[md.status] + '20', color: STATUS_COLOR[md.status] }}>
               {md.status}
             </span>
-            {user?.isMod && md.status === 'open' && (
-              <button onClick={() => closeMatchday(md.id)} style={styles.ghostBtn}>🔒 Close all</button>
+            {user?.isMod && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                {md.status === 'open' && (
+                  <button onClick={() => closeMatchday(md.id)} style={styles.ghostBtn}>🔒 Close all</button>
+                )}
+                <button
+                  onClick={() => postMatchday(md.id)}
+                  disabled={posting === md.id}
+                  style={styles.btnBlue}
+                >
+                  {posting === md.id ? '⏳ Posting...' : '📢 Post all'}
+                </button>
+              </div>
             )}
           </div>
         ))}
@@ -117,4 +143,5 @@ const styles = {
   meta:       { color: '#888', fontSize: 12, marginTop: 2 },
   badge:      { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600 },
   ghostBtn:   { padding: '5px 12px', borderRadius: 6, background: 'none', border: '1px solid #3a3f47', color: '#aaa', cursor: 'pointer', fontSize: 12 },
+  btnBlue:    { padding: '5px 12px', borderRadius: 6, background: '#5865f220', border: '1px solid #5865f2', color: '#5865f2', cursor: 'pointer', fontSize: 12 },
 };

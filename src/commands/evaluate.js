@@ -19,7 +19,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    if (!isModerator(interaction.member)) {
+    if (!(await isModerator(interaction.member))) {
       return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
     }
 

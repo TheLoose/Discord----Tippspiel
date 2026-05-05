@@ -103,7 +103,7 @@ module.exports = {
 
     // ── CREATE ───────────────────────────────────────────────────────────────
     if (sub === 'create') {
-      if (!isModerator(interaction.member)) {
+      if (!(await isModerator(interaction.member))) {
         return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
       }
 
@@ -112,7 +112,7 @@ module.exports = {
       const label    = interaction.options.getString('label') ?? `Matchday ${number}`;
       const channel  = interaction.options.getChannel('channel');
 
-      const [league] = await query('SELECT * FROM leagues WHERE id = ? AND active = true', [leagueId]);
+      const [league] = await query('SELECT * FROM leagues WHERE id = ? AND active = true AND guild_id = ?', [leagueId, interaction.guildId]);
       if (!league) {
         return interaction.reply({ content: `❌ League ID ${leagueId} not found.`, ephemeral: true });
       }
@@ -177,7 +177,7 @@ module.exports = {
 
     // ── CLOSE ────────────────────────────────────────────────────────────────
     if (sub === 'close') {
-      if (!isModerator(interaction.member)) {
+      if (!(await isModerator(interaction.member))) {
         return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
       }
 
@@ -202,7 +202,7 @@ module.exports = {
 
     // ── EVALUATE ─────────────────────────────────────────────────────────────
     if (sub === 'evaluate') {
-      if (!isModerator(interaction.member)) {
+      if (!(await isModerator(interaction.member))) {
         return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
       }
 

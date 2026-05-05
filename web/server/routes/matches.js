@@ -24,10 +24,12 @@ const MATCH_SELECT = `
 
 // GET all matches with optional filters
 router.get('/', requireAuth, async (req, res) => {
+  const guildId = req.session?.activeGuild?.id;
+  if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
   try {
     const { league_id, matchday_id, status } = req.query;
-    let sql = MATCH_SELECT + ' WHERE 1=1';
-    const params = [];
+    let sql = MATCH_SELECT + ' WHERE l.guild_id = ?';
+    const params = [guildId];
     if (league_id)   { sql += ' AND m.league_id = ?';   params.push(league_id); }
     if (matchday_id) { sql += ' AND m.matchday_id = ?'; params.push(matchday_id); }
     if (status)      { sql += ' AND m.status = ?';      params.push(status); }
@@ -51,10 +53,15 @@ router.get('/:id', requireAuth, async (req, res) => {
 
 // POST create match
 router.post('/', requireMod, async (req, res) => {
+  const guildId = req.session?.activeGuild?.id;
+  if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
   const { league_id, matchday_id, team_a_id, team_b_id, match_date } = req.body;
   if (!league_id || !team_a_id || !team_b_id) {
     return res.status(400).json({ error: 'league_id, team_a_id and team_b_id are required' });
   }
+  // Verify league belongs to this guild
+  const [league] = await query('SELECT * FROM leagues WHERE id = ? AND guild_id = ?', [league_id, guildId]);
+  if (!league) return res.status(404).json({ error: 'League not found' });
   try {
     const tz = process.env.TIMEZONE ?? 'Europe/Berlin';
     let initialStatus = 'open';
@@ -151,5 +158,23 @@ async function notifyBotToPost(matchId) {
     console.warn('Could not notify bot to post match:', e.response?.data ?? e.message);
   }
 }
+
+
+// POST force-post a scheduled match to Discord immediately
+router.post('/:id/post', requireMod, async (req, res) => {
+  const secret = process.env.INTERNAL_SECRET;
+  const port   = process.env.INTERNAL_PORT ?? 3002;
+  const host   = process.env.BOT_INTERNAL_HOST ?? '127.0.0.1';
+  try {
+    const result = await axios.post(
+      `http://${host}:${port}/post-match`,
+      { matchId: parseInt(req.params.id) },
+      { headers: { 'x-internal-secret': secret } }
+    );
+    res.json(result.data);
+  } catch (e) {
+    res.status(500).json({ error: e.response?.data?.error ?? e.message });
+  }
+});
 
 module.exports = router;

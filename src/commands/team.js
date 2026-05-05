@@ -46,7 +46,7 @@ module.exports = {
 
     // ── ADD ──────────────────────────────────────────────────────────────────
     if (sub === 'add') {
-      if (!isModerator(interaction.member)) {
+      if (!(await isModerator(interaction.member))) {
         return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
       }
 
@@ -84,7 +84,7 @@ module.exports = {
 
     // ── REMOVE ───────────────────────────────────────────────────────────────
     if (sub === 'remove') {
-      if (!isModerator(interaction.member)) {
+      if (!(await isModerator(interaction.member))) {
         return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
       }
 
@@ -146,7 +146,7 @@ module.exports = {
 
     // ── MOVE (promotion / relegation) ────────────────────────────────────────
     if (sub === 'move') {
-      if (!isModerator(interaction.member)) {
+      if (!(await isModerator(interaction.member))) {
         return interaction.reply({ content: '🚫 You need the moderator role to use this.', ephemeral: true });
       }
 

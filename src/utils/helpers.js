@@ -46,8 +46,23 @@ function buildResultEmbed(match, league, winnerName, winnerEmoji, stats) {
 /**
  * Check whether a member has the moderator role defined in .env
  */
-function isModerator(member) {
-  return member.roles.cache.has(process.env.MOD_ROLE_ID);
+/**
+ * Check whether a member has the moderator role.
+ * Checks guild_settings table first, falls back to MOD_ROLE_ID env var.
+ */
+async function isModerator(member) {
+  const { query } = require('../db/database');
+  try {
+    const [settings] = await query(
+      'SELECT mod_role_id FROM guild_settings WHERE guild_id = ?',
+      [member.guild.id]
+    );
+    const roleId = settings?.mod_role_id ?? process.env.MOD_ROLE_ID;
+    if (!roleId) return false;
+    return member.roles.cache.has(roleId);
+  } catch {
+    return member.roles.cache.has(process.env.MOD_ROLE_ID ?? '');
+  }
 }
 
 /**

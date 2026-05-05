@@ -107,6 +107,14 @@ async function initDB() {
     )
   `);
 
+  await query(`
+    CREATE TABLE IF NOT EXISTS guild_settings (
+      guild_id    VARCHAR(100) PRIMARY KEY,
+      mod_role_id VARCHAR(100) DEFAULT NULL,
+      updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+
   console.log('✅ Database ready.');
 }
 
