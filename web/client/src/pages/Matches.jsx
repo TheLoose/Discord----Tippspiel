@@ -301,7 +301,7 @@ export default function Matches() {
               {m.league_emoji} {m.league_name}
               {m.matchday_label ? ` — ${m.matchday_label}` : ''}
               {' '}• ID: {m.id}
-              {m.match_date ? ` • ${new Date(m.match_date).toLocaleString('de-DE')}` : ''}
+              {m.match_date ? ` • ${new Date(m.match_date).toLocaleString('de-DE', { timeZone: 'Europe/Berlin' })}` : ''}
             </div>
 
             {/* Vote counts */}

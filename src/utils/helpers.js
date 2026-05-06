@@ -10,6 +10,14 @@ function buildMatchEmbed(match, league) {
   const color = LEAGUE_COLORS[(league.id - 1) % LEAGUE_COLORS.length];
 
   const matchdayLabel = league.matchday ? ` — ${league.matchday.label}` : '';
+  const tz = process.env.TIMEZONE ?? 'Europe/Berlin';
+  const dateDisplay = match.match_date
+    ? new Date(match.match_date).toLocaleString('de-DE', {
+        timeZone: tz,
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      })
+    : null;
 
   return new EmbedBuilder()
     .setColor(color)
@@ -17,7 +25,8 @@ function buildMatchEmbed(match, league) {
     .setDescription(
       `## ${match.team_a_emoji} ${match.team_a}  vs  ${match.team_b} ${match.team_b_emoji}\n\n` +
       `React with ${match.team_a_emoji} to vote for **${match.team_a}**\n` +
-      `React with ${match.team_b_emoji} to vote for **${match.team_b}**`
+      `React with ${match.team_b_emoji} to vote for **${match.team_b}**` +
+      (dateDisplay ? `\n\n🕐 **Kickoff: ${dateDisplay}**` : '')
     )
     .setFooter({ text: `Match ID: ${match.id} • Voting is open!` })
     .setTimestamp(match.match_date ? new Date(match.match_date) : null);
