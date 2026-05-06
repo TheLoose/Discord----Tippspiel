@@ -237,7 +237,7 @@ const styles = {
   heading:    { color: '#fff', fontSize: 26, fontWeight: 700, margin: '0 0 24px' },
   subheading: { color: '#fff', fontSize: 16, fontWeight: 600, margin: '0 0 12px' },
   form:       { background: '#1e2228', borderRadius: 10, padding: 20, marginBottom: 24, border: '1px solid #2a2f38' },
-  grid:       { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 },
+  grid:       { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 },
   label:      { color: '#aaa', fontSize: 12, display: 'block', marginBottom: 4 },
   input:      { padding: '8px 12px', borderRadius: 8, border: '1px solid #3a3f47', background: '#2b2f36', color: '#fff', fontSize: 14, width: '100%', boxSizing: 'border-box' },
   select:     { padding: '8px 12px', borderRadius: 8, border: '1px solid #3a3f47', background: '#2b2f36', color: '#fff', fontSize: 14, width: '100%', boxSizing: 'border-box' },

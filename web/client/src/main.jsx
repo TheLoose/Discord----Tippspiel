@@ -20,6 +20,10 @@ const globalStyles = `
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #1e2228; }
   ::-webkit-scrollbar-thumb { background: #3a3f47; border-radius: 3px; }
+  @media (max-width: 767px) {
+    input, select, textarea { font-size: 16px !important; width: 100% !important; }
+    .form-grid { grid-template-columns: 1fr !important; }
+  }
 `;
 
 // Error boundary — catches any crash and shows a message instead of blank screen
