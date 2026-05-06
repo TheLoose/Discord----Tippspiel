@@ -105,8 +105,10 @@ export default function Matches() {
       const lines = importText.trim().split('\n').filter(l => l.trim());
       const rows  = [];
       for (const line of lines) {
-        const sep   = line.includes(';') ? ';' : ',';
-        const parts = line.split(sep).map(p => p.trim());
+        // Strip surrounding quotes from the whole line (e.g. "WM;1;FIN;GER;...")
+        const cleanLine = line.trim().replace(/^["']|["']$/g, '');
+        const sep   = cleanLine.includes(';') ? ';' : ',';
+        const parts = cleanLine.split(sep).map(p => p.trim().replace(/^["']|["']$/g, ''));
         if (parts[0].toLowerCase() === 'league' || parts[2]?.toLowerCase() === 'home') continue;
         if (parts.length < 5) continue;
         rows.push({ matchday: parseInt(parts[1]), home: parts[2], away: parts[3], time: parts[4] });
