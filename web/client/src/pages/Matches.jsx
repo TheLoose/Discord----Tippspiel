@@ -173,35 +173,40 @@ export default function Matches() {
       <div style={styles.list}>
         {data.map(m => (
           <div key={m.id} style={styles.item}>
-            <div style={{ flex: 1 }}>
+            {/* Top row: teams + badge */}
+            <div style={styles.itemTop}>
               <div style={styles.matchTeams}>
                 {renderEmoji(m.team_a_emoji)} <b>{m.team_a}</b>
-                <span style={{ color: '#888', margin: '0 8px' }}>vs</span>
+                <span style={{ color: '#888', margin: '0 6px' }}>vs</span>
                 <b>{m.team_b}</b> {renderEmoji(m.team_b_emoji)}
               </div>
-              <div style={styles.meta}>
-                {m.league_emoji} {m.league_name}
-                {m.matchday_label ? ` — ${m.matchday_label}` : ''}
-                {' '}• ID: {m.id}
-                {m.match_date ? ` • ${new Date(m.match_date).toLocaleString('de-DE')}` : ''}
-              </div>
-              {m.status !== 'scheduled' && (
-                <div style={styles.votes}>
-                  {renderEmoji(m.team_a_emoji)} {m.votes_a ?? 0} — {m.votes_b ?? 0} {renderEmoji(m.team_b_emoji)}
-                  <span style={{ color: '#888', marginLeft: 8 }}>({m.total_votes ?? 0} total)</span>
-                  {m.winning_team && (
-                    <span style={{ color: '#57f287', marginLeft: 8 }}>
-                      🏅 {m.winning_team === 'a' ? m.team_a : m.team_b} won
-                    </span>
-                  )}
-                </div>
-              )}
+              <span style={{ ...styles.badge, background: STATUS_COLOR[m.status] + '20', color: STATUS_COLOR[m.status] }}>
+                {m.status}
+              </span>
             </div>
 
-            <span style={{ ...styles.badge, background: STATUS_COLOR[m.status] + '20', color: STATUS_COLOR[m.status] }}>
-              {m.status}
-            </span>
+            {/* Meta info */}
+            <div style={styles.meta}>
+              {m.league_emoji} {m.league_name}
+              {m.matchday_label ? ` — ${m.matchday_label}` : ''}
+              {' '}• ID: {m.id}
+              {m.match_date ? ` • ${new Date(m.match_date).toLocaleString('de-DE')}` : ''}
+            </div>
 
+            {/* Vote counts */}
+            {m.status !== 'scheduled' && (
+              <div style={styles.votes}>
+                {renderEmoji(m.team_a_emoji)} {m.votes_a ?? 0} — {m.votes_b ?? 0} {renderEmoji(m.team_b_emoji)}
+                <span style={{ color: '#888', marginLeft: 6 }}>({m.total_votes ?? 0} total)</span>
+                {m.winning_team && (
+                  <span style={{ color: '#57f287', marginLeft: 6 }}>
+                    🏅 {m.winning_team === 'a' ? m.team_a : m.team_b} won
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Action buttons — always on their own row */}
             {user?.isMod && (
               <div style={styles.actions}>
                 {m.status === 'scheduled' && (
@@ -248,11 +253,12 @@ const styles = {
   error:      { color: '#ed4245', fontSize: 13, marginBottom: 10 },
   filterRow:  { display: 'flex', gap: 12, marginBottom: 16 },
   list:       { display: 'flex', flexDirection: 'column', gap: 8 },
-  item:       { display: 'flex', alignItems: 'center', gap: 16, background: '#1e2228', borderRadius: 8, padding: '14px 16px', border: '1px solid #2a2f38' },
-  matchTeams: { color: '#fff', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 },
-  meta:       { color: '#888', fontSize: 12, marginTop: 4 },
-  votes:      { color: '#ccc', fontSize: 13, marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 },
-  badge:      { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' },
-  actions:    { display: 'flex', gap: 8, alignItems: 'center' },
-  evalRow:    { display: 'flex', gap: 8, alignItems: 'center' },
+  item:       { display: 'flex', flexDirection: 'column', gap: 8, background: '#1e2228', borderRadius: 10, padding: '14px 16px', border: '1px solid #2a2f38' },
+  itemTop:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
+  matchTeams: { color: '#fff', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  meta:       { color: '#888', fontSize: 12 },
+  votes:      { color: '#ccc', fontSize: 13, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4 },
+  badge:      { padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 },
+  actions:    { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', paddingTop: 4, borderTop: '1px solid #2a2f3840' },
+  evalRow:    { display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
 };
