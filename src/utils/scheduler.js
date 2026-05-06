@@ -104,7 +104,7 @@ async function closeExpiredMatches(client) {
      JOIN teams t2 ON m.team_b_id = t2.team_id
      WHERE m.status = 'open'
        AND m.match_date IS NOT NULL
-       AND m.match_date <= NOW()`
+       AND m.match_date <= DATE_SUB(NOW(), INTERVAL 1 MINUTE)`
   );
 
   for (const match of matches) {

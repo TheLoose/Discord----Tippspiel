@@ -260,10 +260,11 @@ module.exports = {
             });
 
             const dateStr = modalSubmit.fields.getTextInputValue('match_date').trim();
-            const parsed  = new Date(dateStr);
+            // Parse naive datetime string as UTC first, then adjust for Berlin timezone
+            const naiveParsed = new Date(dateStr + ':00Z');
 
-            // Validate: must be a real date and not in the past
-            if (isNaN(parsed.getTime())) {
+            // Validate: must be a real date
+            if (isNaN(naiveParsed.getTime())) {
               // Invalid format — show an error message and a retry button, then loop
               lastError = dateStr;
               const retryBtn = new ButtonBuilder()
@@ -301,8 +302,17 @@ module.exports = {
               continue;
             }
 
-            // Valid date — accept it
-            matchDate = parsed;
+            // Valid — convert from Europe/Berlin input to correct UTC for storage
+            const tz2 = process.env.TIMEZONE ?? 'Europe/Berlin';
+            const fmt2 = new Intl.DateTimeFormat('en-US', {
+              timeZone: tz2, year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+            const pts2     = fmt2.formatToParts(naiveParsed);
+            const get2     = t => parseInt(pts2.find(p => p.type === t).value);
+            const localEq  = new Date(Date.UTC(get2('year'), get2('month') - 1, get2('day'), get2('hour'), get2('minute'), get2('second')));
+            const offset2  = localEq - naiveParsed;
+            matchDate = new Date(naiveParsed.getTime() - offset2);
             await modalSubmit.deferUpdate();
             break;
           }
