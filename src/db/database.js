@@ -50,6 +50,7 @@ async function initDB() {
     CREATE TABLE IF NOT EXISTS teams (
       team_id    INT AUTO_INCREMENT PRIMARY KEY,
       name       VARCHAR(100) NOT NULL,
+      short_name VARCHAR(10)  DEFAULT NULL,
       league_id  INT NOT NULL,
       emoji      VARCHAR(100) NOT NULL,
       active     BOOLEAN DEFAULT true,
@@ -114,6 +115,11 @@ async function initDB() {
       updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
+
+  // Migration: add short_name to teams if not present
+  await query(`
+    ALTER TABLE teams ADD COLUMN IF NOT EXISTS short_name VARCHAR(10) DEFAULT NULL
+  `).catch(() => {}); // ignore if already exists or unsupported
 
   console.log('✅ Database ready.');
 }

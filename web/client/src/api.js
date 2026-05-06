@@ -51,6 +51,10 @@ export const settings = {
   roles:    ()       => api.get('/settings/roles'),
 };
 
+export const importApi = {
+  matches: (league_id, rows) => api.post('/import/matches', { league_id, rows }),
+};
+
 export const leaderboard = {
   get: (leagueId) => api.get(`/leaderboard/${leagueId}`),
 };

@@ -28,9 +28,10 @@ export default function Teams() {
   const [data, setData]       = useState([]);
   const [allLeagues, setAllLeagues] = useState([]);
   const [filterLeague, setFilterLeague] = useState('');
-  const [name, setName]       = useState('');
-  const [emoji, setEmoji]     = useState('');
-  const [leagueId, setLeagueId] = useState('');
+  const [name, setName]           = useState('');
+  const [emoji, setEmoji]         = useState('');
+  const [shortName, setShortName] = useState('');
+  const [leagueId, setLeagueId]   = useState('');
   const [movingId, setMovingId] = useState(null);
   const [moveTarget, setMoveTarget] = useState('');
   const [error, setError]     = useState('');
@@ -47,8 +48,8 @@ export default function Teams() {
     if (!name || !emoji || !leagueId) return setError('All fields are required.');
     setSaving(true); setError('');
     try {
-      await teamsApi.create({ name, emoji, league_id: leagueId });
-      setName(''); setEmoji('');
+      await teamsApi.create({ name, emoji, league_id: leagueId, short_name: shortName || null });
+      setName(''); setEmoji(''); setShortName('');
       load();
     } catch (e) {
       setError(e.response?.data?.error ?? 'Failed to create team');
@@ -83,6 +84,7 @@ export default function Teams() {
               ))}
             </select>
             <input placeholder="Team name" value={name} onChange={e => setName(e.target.value)} style={styles.input} />
+            <input placeholder="Short (e.g. GER)" value={shortName} onChange={e => setShortName(e.target.value.toUpperCase())} style={{ ...styles.input, width: 100 }} maxLength={10} />
             <EmojiPicker value={emoji} onChange={setEmoji} placeholder="Pick emoji" />
             <button type="submit" disabled={saving} style={styles.btn}>
               {saving ? 'Adding...' : '+ Add Team'}
@@ -103,7 +105,14 @@ export default function Teams() {
           <div key={t.team_id} style={{ ...styles.item, opacity: t.active ? 1 : 0.5 }}>
             <span>{renderEmoji(t.emoji)}</span>
             <div style={{ flex: 1 }}>
-              <div style={styles.name}>{t.name}</div>
+              <div style={styles.name}>
+                {t.name}
+                {t.short_name && (
+                  <span style={{ marginLeft: 8, padding: '2px 8px', borderRadius: 6, background: '#5865f220', color: '#5865f2', fontSize: 11, fontWeight: 700 }}>
+                    {t.short_name}
+                  </span>
+                )}
+              </div>
               <div style={styles.meta}>{t.league_emoji} {t.league_name} • ID: {t.team_id}</div>
             </div>
             {user?.isMod && (

@@ -25,12 +25,15 @@ router.get('/', requireAuth, async (req, res) => {
 router.post('/', requireMod, async (req, res) => {
   const guildId = getGuildId(req);
   if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
-  const { name, emoji, league_id } = req.body;
+  const { name, emoji, league_id, short_name } = req.body;
   if (!name || !emoji || !league_id) return res.status(400).json({ error: 'name, emoji and league_id are required' });
   try {
     const [league] = await query('SELECT * FROM leagues WHERE id = ? AND guild_id = ?', [league_id, guildId]);
     if (!league) return res.status(404).json({ error: 'League not found' });
-    const result = await query('INSERT INTO teams (name, emoji, league_id) VALUES (?, ?, ?)', [name, emoji, league_id]);
+    const result = await query(
+      'INSERT INTO teams (name, short_name, emoji, league_id) VALUES (?, ?, ?, ?)',
+      [name, short_name?.toUpperCase() || null, emoji, league_id]
+    );
     const [team] = await query('SELECT * FROM teams WHERE team_id = ?', [result.insertId]);
     res.json(team);
   } catch (e) {
@@ -56,11 +59,11 @@ router.patch('/:id/move', requireMod, async (req, res) => {
 
 // PATCH update team
 router.patch('/:id', requireMod, async (req, res) => {
-  const { active, emoji } = req.body;
+  const { active, emoji, short_name } = req.body;
   try {
     await query(
-      'UPDATE teams SET active = COALESCE(?, active), emoji = COALESCE(?, emoji) WHERE team_id = ?',
-      [active ?? null, emoji ?? null, req.params.id]
+      'UPDATE teams SET active = COALESCE(?, active), emoji = COALESCE(?, emoji), short_name = COALESCE(?, short_name) WHERE team_id = ?',
+      [active ?? null, emoji ?? null, short_name?.toUpperCase() ?? null, req.params.id]
     );
     const [team] = await query('SELECT * FROM teams WHERE team_id = ?', [req.params.id]);
     res.json(team);

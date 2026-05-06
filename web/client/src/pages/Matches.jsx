@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { matches as matchesApi, leagues as leaguesApi, matchdays as matchdaysApi, teams as teamsApi } from '../api';
+import { matches as matchesApi, leagues as leaguesApi, matchdays as matchdaysApi, teams as teamsApi, importApi } from '../api';
 import EmojiPicker from '../components/EmojiPicker';
 import { useAuth } from '../hooks/useAuth';
 import { useOutletContext } from 'react-router-dom';
@@ -46,6 +46,14 @@ export default function Matches() {
   // Evaluate state
   const [evaluating, setEvaluating]   = useState(null); // match id
 
+  // Import state
+  const [showImport, setShowImport]   = useState(false);
+  const [importLeague, setImportLeague] = useState('');
+  const [importText, setImportText]   = useState('');
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting]     = useState(false);
+  const [importError, setImportError] = useState('');
+
   const loadMatches = () =>
     matchesApi.list({
       league_id: filterLeague || undefined,
@@ -89,6 +97,29 @@ export default function Matches() {
     loadMatches();
   };
 
+  const runImport = async () => {
+    if (!importLeague) return setImportError('Please select a league.');
+    if (!importText.trim()) return setImportError('Please paste some CSV content.');
+    setImporting(true); setImportError(''); setImportResult(null);
+    try {
+      const lines = importText.trim().split('\n').filter(l => l.trim());
+      const rows  = [];
+      for (const line of lines) {
+        const sep   = line.includes(';') ? ';' : ',';
+        const parts = line.split(sep).map(p => p.trim());
+        if (parts[0].toLowerCase() === 'league' || parts[2]?.toLowerCase() === 'home') continue;
+        if (parts.length < 5) continue;
+        rows.push({ matchday: parseInt(parts[1]), home: parts[2], away: parts[3], time: parts[4] });
+      }
+      if (!rows.length) return setImportError('No valid rows found in the CSV.');
+      const r = await importApi.matches(importLeague, rows);
+      setImportResult(r.data);
+      if (r.data.created > 0) loadMatches();
+    } catch (e) {
+      setImportError(e.response?.data?.error ?? 'Import failed');
+    } finally { setImporting(false); }
+  };
+
   const postMatchNow = async id => {
     try {
       await matchesApi.post(id);
@@ -110,7 +141,85 @@ export default function Matches() {
 
   return (
     <div>
-      <h1 style={styles.heading}>Matches</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <h1 style={{ ...styles.heading, margin: 0 }}>Matches</h1>
+        {user?.isMod && (
+          <button onClick={() => { setShowImport(o => !o); setImportResult(null); setImportError(''); }} style={styles.btn}>
+            📥 Bulk Import CSV
+          </button>
+        )}
+      </div>
+
+      {/* Bulk Import Panel */}
+      {showImport && user?.isMod && (
+        <div style={styles.form}>
+          <h2 style={styles.subheading}>📥 Bulk Import from CSV</h2>
+          <p style={{ color: '#888', fontSize: 13, margin: '0 0 12px' }}>
+            Expected format: <code style={{ color: '#aaa' }}>League;Matchday;Home;Away;Time</code> (semicolon or comma separated).
+            Team names/abbreviations must match teams already added for the selected league.
+            Matchdays are created automatically if they don't exist.
+          </p>
+          {importError && <div style={styles.error}>{importError}</div>}
+
+          <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={styles.label}>League *</label>
+              <select value={importLeague} onChange={e => setImportLeague(e.target.value)} style={styles.select}>
+                <option value="">Select league...</option>
+                {allLeagues.filter(l => l.active).map(l => <option key={l.id} value={l.id}>{l.emoji} {l.name}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                style={{ ...styles.btn, background: '#57f287', color: '#000' }}
+                disabled={importing}
+                onClick={runImport}
+              >
+                {importing ? '⏳ Importing...' : '▶ Run Import'}
+              </button>
+              <label style={{ ...styles.btn, background: '#3a3f47', cursor: 'pointer' }}>
+                📂 Upload file
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  style={{ display: 'none' }}
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => setImportText(ev.target.result);
+                    reader.readAsText(file);
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+
+          <textarea
+            placeholder={`Paste CSV here, e.g.:\nWM;1;FIN;GER;15-05-2026 16:20;\nWM;1;CAN;SWE;15-05-2026 16:20;`}
+            value={importText}
+            onChange={e => setImportText(e.target.value)}
+            style={{ ...styles.input, height: 160, resize: 'vertical', fontFamily: 'monospace', fontSize: 13 }}
+          />
+
+          {importResult && (
+            <div style={{ marginTop: 12, padding: 12, background: '#13151a', borderRadius: 8, border: '1px solid #2a2f38' }}>
+              <div style={{ color: '#57f287', fontWeight: 600 }}>✅ Import complete</div>
+              <div style={{ color: '#ccc', fontSize: 13, marginTop: 4 }}>
+                {importResult.created} match(es) created, {importResult.skipped} skipped
+              </div>
+              {importResult.errors?.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ color: '#fee75c', fontSize: 13, fontWeight: 600 }}>⚠️ Warnings:</div>
+                  {[...new Set(importResult.errors)].map((e, i) => (
+                    <div key={i} style={{ color: '#888', fontSize: 12 }}>• {e}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {user?.isMod && (
         <form onSubmit={submit} style={styles.form}>

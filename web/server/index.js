@@ -37,6 +37,7 @@ app.use('/api/matchdays',    require('./routes/matchdays'));
 app.use('/api/matches',      require('./routes/matches'));
 app.use('/api/leaderboard',  require('./routes/leaderboard'));
 app.use('/api/settings',     require('./routes/settings'));
+app.use('/api/import',      require('./routes/import'));
 
 app.get('/health', (_, res) => res.json({ ok: true }));
 
