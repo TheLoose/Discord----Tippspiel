@@ -26,8 +26,7 @@ router.get('/', requireAuth, async (req, res) => {
     `;
     const params = [guildId];
     if (type) { sql += ' AND l.type = ?'; params.push(type); }
-    sql += ' ORDER BY l.created_at DESC LIMIT ?';
-    params.push(limitNum);
+    sql += ` ORDER BY l.created_at DESC LIMIT ${limitNum}`;
     const rows = await query(sql, params);
     // Safely parse JSON details field
     res.json(rows.map(r => {
