@@ -10,7 +10,8 @@ router.get('/', requireAuth, async (req, res) => {
   const guildId = getGuildId(req);
   if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
   try {
-    const { type, limit = 100 } = req.query;
+    const { type, limit } = req.query;
+    const limitNum = Math.min(parseInt(limit) || 100, 500);
     let sql = `
       SELECT l.*,
              t1.name AS team_a, t1.emoji AS team_a_emoji,
@@ -26,7 +27,7 @@ router.get('/', requireAuth, async (req, res) => {
     const params = [guildId];
     if (type) { sql += ' AND l.type = ?'; params.push(type); }
     sql += ' ORDER BY l.created_at DESC LIMIT ?';
-    params.push(parseInt(limit));
+    params.push(limitNum);
     const rows = await query(sql, params);
     // Safely parse JSON details field
     res.json(rows.map(r => {
