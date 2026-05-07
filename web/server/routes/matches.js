@@ -107,18 +107,31 @@ router.post('/', requireMod, async (req, res) => {
 
     // If match is open (today or no date), tell the bot to post it to Discord now
     if (initialStatus === 'open') {
+      // Log immediately before notifying bot (don't wait for bot response)
+      await query(
+        `INSERT INTO logs (guild_id, type, match_id, details) VALUES (?, 'match_posted', ?, ?)`,
+        [guildId, result.insertId, JSON.stringify({
+          team_a: match.team_a, team_b: match.team_b,
+          match_date: match.match_date,
+          posted_by: req.session.user.username
+        })]
+      ).catch(e => console.warn('Log insert failed:', e.message));
+
       await notifyBotToPost(result.insertId);
       const [updated] = await query(MATCH_SELECT + ' WHERE m.id = ? GROUP BY m.id', [result.insertId]);
-      if (updated) {
-        await query(
-          `INSERT INTO logs (guild_id, type, match_id, details) VALUES (?, 'match_posted', ?, ?)`,
-          [updated.guild_id, result.insertId, JSON.stringify({
-            team_a: updated.team_a, team_b: updated.team_b,
-            match_date: updated.match_date, posted_by: req.session.user.username
-          })]
-        );
-      }
-      return res.json(updated);
+      return res.json(updated ?? match);
+    }
+
+    // Log scheduled matches
+    if (initialStatus === 'scheduled' && match) {
+      await query(
+        `INSERT INTO logs (guild_id, type, match_id, details) VALUES (?, 'match_posted', ?, ?)`,
+        [guildId, result.insertId, JSON.stringify({
+          team_a: match.team_a, team_b: match.team_b,
+          match_date: match.match_date, status: 'scheduled',
+          posted_by: req.session.user.username
+        })]
+      ).catch(e => console.warn('Log insert failed:', e.message));
     }
 
     res.json(match);
