@@ -22,14 +22,16 @@ export default function Logs() {
   const { activeGuild }         = useOutletContext() ?? {};
   const [data, setData]         = useState([]);
   const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
   const [filterType, setFilterType] = useState('');
 
   useEffect(() => {
     if (!activeGuild) return;
     setLoading(true);
+    setError('');
     logsApi.list({ type: filterType || undefined, limit: 200 })
       .then(r => setData(r.data))
-      .catch(() => setData([]))
+      .catch(e => setError(e.response?.data?.error ?? e.message))
       .finally(() => setLoading(false));
   }, [activeGuild, filterType]);
 
@@ -54,6 +56,7 @@ export default function Logs() {
       </div>
 
       {loading && <p style={{ color: '#888' }}>Loading...</p>}
+      {error && <div style={{ color: '#ed4245', background: '#ed424210', borderRadius: 8, padding: '10px 16px', marginBottom: 16 }}>❌ {error}</div>}
 
       {!loading && data.length === 0 && (
         <p style={{ color: '#888' }}>No logs yet. Logs appear when matches are posted, closed or evaluated.</p>

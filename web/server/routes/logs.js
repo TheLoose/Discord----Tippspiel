@@ -28,9 +28,16 @@ router.get('/', requireAuth, async (req, res) => {
     sql += ' ORDER BY l.created_at DESC LIMIT ?';
     params.push(parseInt(limit));
     const rows = await query(sql, params);
-    // Parse JSON details
-    res.json(rows.map(r => ({ ...r, details: typeof r.details === 'string' ? JSON.parse(r.details) : r.details })));
+    // Safely parse JSON details field
+    res.json(rows.map(r => {
+      let details = r.details;
+      if (typeof details === 'string') {
+        try { details = JSON.parse(details); } catch { details = {}; }
+      }
+      return { ...r, details: details ?? {} };
+    }));
   } catch (e) {
+    console.error('Logs query error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
