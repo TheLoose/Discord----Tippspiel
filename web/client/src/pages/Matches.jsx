@@ -44,7 +44,8 @@ export default function Matches() {
   const [saving, setSaving]           = useState(false);
 
   // Evaluate state
-  const [evaluating, setEvaluating]   = useState(null); // match id
+  const [evaluating, setEvaluating]     = useState(null);
+  const [reevaluating, setReevaluating] = useState(null);
 
   // Import state
   const [showImport, setShowImport]   = useState(false);
@@ -120,6 +121,16 @@ export default function Matches() {
     } catch (e) {
       setImportError(e.response?.data?.error ?? 'Import failed');
     } finally { setImporting(false); }
+  };
+
+  const reevaluate = async (id, winner) => {
+    try {
+      await matchesApi.reevaluate(id, winner);
+      setReevaluating(null);
+      loadMatches();
+    } catch (e) {
+      alert(e.response?.data?.error ?? 'Reevaluation failed');
+    }
   };
 
   const postMatchNow = async id => {
@@ -328,6 +339,21 @@ export default function Matches() {
                 )}
                 {m.status === 'closed' && evaluating !== m.id && (
                   <button onClick={() => setEvaluating(m.id)} style={styles.btnGreen}>⚡ Evaluate</button>
+                )}
+                {m.status === 'evaluated' && reevaluating !== m.id && (
+                  <button onClick={() => setReevaluating(m.id)} style={{ ...styles.ghostBtn, color: '#fee75c', borderColor: '#fee75c' }}>🔄 Reevaluate</button>
+                )}
+                {reevaluating === m.id && (
+                  <div style={styles.evalRow}>
+                    <span style={{ color: '#fee75c', fontSize: 12 }}>Switch winner:</span>
+                    <button onClick={() => reevaluate(m.id, 'a')} style={{ ...styles.btn, background: m.winning_team === 'a' ? '#57f287' : '#5865f2' }}>
+                      {renderEmoji(m.team_a_emoji)} {m.team_a}
+                    </button>
+                    <button onClick={() => reevaluate(m.id, 'b')} style={{ ...styles.btn, background: m.winning_team === 'b' ? '#57f287' : '#5865f2' }}>
+                      {renderEmoji(m.team_b_emoji)} {m.team_b}
+                    </button>
+                    <button onClick={() => setReevaluating(null)} style={styles.ghostBtn}>Cancel</button>
+                  </div>
                 )}
                 {evaluating === m.id && (
                   <div style={styles.evalRow}>

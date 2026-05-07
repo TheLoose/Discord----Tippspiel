@@ -108,8 +108,16 @@ router.post('/', requireMod, async (req, res) => {
     // If match is open (today or no date), tell the bot to post it to Discord now
     if (initialStatus === 'open') {
       await notifyBotToPost(result.insertId);
-      // Re-fetch to get the updated discord_message_id
       const [updated] = await query(MATCH_SELECT + ' WHERE m.id = ? GROUP BY m.id', [result.insertId]);
+      if (updated) {
+        await query(
+          `INSERT INTO logs (guild_id, type, match_id, details) VALUES (?, 'match_posted', ?, ?)`,
+          [updated.guild_id, result.insertId, JSON.stringify({
+            team_a: updated.team_a, team_b: updated.team_b,
+            match_date: updated.match_date, posted_by: req.session.user.username
+          })]
+        );
+      }
       return res.json(updated);
     }
 
@@ -124,6 +132,15 @@ router.patch('/:id/close', requireMod, async (req, res) => {
   try {
     await query(`UPDATE matches SET status = 'closed' WHERE id = ? AND status = 'open'`, [req.params.id]);
     const [match] = await query(MATCH_SELECT + ' WHERE m.id = ? GROUP BY m.id', [req.params.id]);
+    if (match) {
+      await query(
+        `INSERT INTO logs (guild_id, type, match_id, details) VALUES (?, 'match_closed', ?, ?)`,
+        [match.guild_id, req.params.id, JSON.stringify({
+          team_a: match.team_a, team_b: match.team_b,
+          reason: 'manual', closed_by: req.session.user.username
+        })]
+      );
+    }
     res.json(match);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -158,8 +175,72 @@ router.patch('/:id/evaluate', requireMod, async (req, res) => {
     }
 
     await query('UPDATE matches SET status = ?, winning_team = ? WHERE id = ?', ['evaluated', winner, req.params.id]);
+
+    // Log evaluation
+    await query(
+      `INSERT INTO logs (guild_id, type, match_id, details) VALUES (?, 'match_evaluated', ?, ?)`,
+      [match.guild_id, req.params.id, JSON.stringify({
+        team_a: match.team_a, team_b: match.team_b,
+        winning_team: winner,
+        winning_name: winner === 'a' ? match.team_a : match.team_b,
+        correct, wrong,
+        evaluated_by: req.session.user.username
+      })]
+    );
+
     const [updated] = await query(MATCH_SELECT + ' WHERE m.id = ? GROUP BY m.id', [req.params.id]);
     res.json({ match: updated, correct, wrong });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// PATCH reevaluate match — switch winner and recalculate points
+router.patch('/:id/reevaluate', requireMod, async (req, res) => {
+  const { winner } = req.body;
+  if (!winner || !['a', 'b'].includes(winner)) {
+    return res.status(400).json({ error: 'winner must be "a" or "b"' });
+  }
+  try {
+    const [match] = await query(MATCH_SELECT + ' WHERE m.id = ? GROUP BY m.id', [req.params.id]);
+    if (!match) return res.status(404).json({ error: 'Match not found' });
+    if (match.status !== 'evaluated') return res.status(400).json({ error: 'Match must be evaluated first' });
+    if (match.winning_team === winner) return res.status(400).json({ error: 'That team already won' });
+
+    const oldWinner = match.winning_team;
+    const votes = await query('SELECT * FROM votes WHERE match_id = ?', [req.params.id]);
+
+    // Reverse old points and award new ones
+    for (const vote of votes) {
+      const wasCorrect = vote.team === oldWinner;
+      const isCorrect  = vote.team === winner;
+      if (wasCorrect === isCorrect) continue; // no change for this user
+
+      // Subtract old result, add new result
+      const pointDiff  = isCorrect ? 1 : -1;
+      const correctDiff = isCorrect ? 1 : -1;
+      await query(
+        `UPDATE points SET total = total + ?, correct = correct + ?
+         WHERE user_id = ? AND league_id = ?`,
+        [pointDiff, correctDiff, vote.user_id, match.league_id]
+      );
+    }
+
+    await query('UPDATE matches SET winning_team = ? WHERE id = ?', [winner, req.params.id]);
+
+    // Log reevaluation
+    await query(
+      `INSERT INTO logs (guild_id, type, match_id, details) VALUES (?, 'match_reevaluated', ?, ?)`,
+      [match.guild_id, req.params.id, JSON.stringify({
+        team_a: match.team_a, team_b: match.team_b,
+        old_winner: oldWinner, old_winning_name: oldWinner === 'a' ? match.team_a : match.team_b,
+        new_winner: winner,    new_winning_name: winner   === 'a' ? match.team_a : match.team_b,
+        reevaluated_by: req.session.user.username
+      })]
+    );
+
+    const [updated] = await query(MATCH_SELECT + ' WHERE m.id = ? GROUP BY m.id', [req.params.id]);
+    res.json({ match: updated });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

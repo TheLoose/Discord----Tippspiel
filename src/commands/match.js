@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const { query } = require('../db/database');
+const { log } = require('../utils/logger');
 const { buildMatchEmbed, isModerator, parseEmoji } = require('../utils/helpers');
 
 module.exports = {
@@ -119,6 +120,10 @@ module.exports = {
       if (match.status !== 'open') return interaction.reply({ content: `❌ Match is already ${match.status}.`, ephemeral: true });
 
       await query('UPDATE matches SET status = ? WHERE id = ?', ['closed', matchId]);
+      const [lg] = await query('SELECT guild_id FROM leagues WHERE id = ?', [match.league_id]);
+      await log('match_closed', lg?.guild_id, matchId, {
+        team_a: match.team_a, team_b: match.team_b, reason: 'manual'
+      });
 
       try {
         const channel = await interaction.client.channels.fetch(match.discord_channel_id);

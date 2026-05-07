@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { query } = require('../db/database');
 const { buildMatchEmbed, parseEmoji } = require('./helpers');
 const { EmbedBuilder } = require('discord.js');
+const { log } = require('./logger');
 
 /**
  * Posts all matches scheduled for today that haven't been posted yet.
@@ -87,6 +88,13 @@ async function postMatch(client, match) {
     [msg.id, channel.id, match.id]
   );
 
+  // Log the post
+  const guildId = match.guild_id ?? (await query('SELECT guild_id FROM leagues WHERE id = ?', [match.league_id]))[0]?.guild_id;
+  await log('match_posted', guildId, match.id, {
+    team_a: match.team_a, team_b: match.team_b,
+    match_date: match.match_date, channel_id: channel.id
+  });
+
   console.log(`✅ Posted match ${match.id}: ${match.team_a} vs ${match.team_b}`);
   return msg.id;
 }
@@ -124,6 +132,11 @@ async function closeExpiredMatches(client) {
       }
 
       console.log(`🔒 Auto-closed match ${match.id}: ${match.team_a} vs ${match.team_b}`);
+
+      const guildId = (await query('SELECT guild_id FROM leagues WHERE id = ?', [match.league_id]))[0]?.guild_id;
+      await log('match_closed', guildId, match.id, {
+        team_a: match.team_a, team_b: match.team_b, reason: 'auto_kickoff'
+      });
     } catch (e) {
       console.error(`❌ Failed to close match ${match.id}:`, e.message);
     }

@@ -116,10 +116,21 @@ async function initDB() {
     )
   `);
 
-  // Migration: add short_name to teams if not present
   await query(`
-    ALTER TABLE teams ADD COLUMN IF NOT EXISTS short_name VARCHAR(10) DEFAULT NULL
-  `).catch(() => {}); // ignore if already exists or unsupported
+    CREATE TABLE IF NOT EXISTS logs (
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      guild_id   VARCHAR(100) NOT NULL,
+      type       ENUM('match_posted','match_closed','match_evaluated','match_reevaluated') NOT NULL,
+      match_id   INT NOT NULL,
+      details    JSON,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_guild (guild_id),
+      INDEX idx_match (match_id)
+    )
+  `);
+
+  // Migrations for existing deployments
+  await query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS short_name VARCHAR(10) DEFAULT NULL`).catch(() => {});
 
   console.log('✅ Database ready.');
 }

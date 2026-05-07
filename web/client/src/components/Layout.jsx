@@ -11,6 +11,7 @@ const NAV = [
   { to: '/matchdays',   label: '📅 Matchdays'    },
   { to: '/matches',     label: '⚽ Matches'      },
   { to: '/leaderboard', label: '🥇 Leaderboard'  },
+  { to: '/logs',        label: '📋 Logs'          },
   { to: '/settings',    label: '⚙️ Settings'     },
 ];
 

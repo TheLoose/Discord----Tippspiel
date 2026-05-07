@@ -37,12 +37,17 @@ export const matchdays = {
 };
 
 export const matches = {
-  list:     (params)       => api.get('/matches', { params }),
-  get:      (id)           => api.get(`/matches/${id}`),
-  create:   (data)         => api.post('/matches', data),
-  close:    (id)           => api.patch(`/matches/${id}/close`),
-  evaluate: (id, winner)   => api.patch(`/matches/${id}/evaluate`, { winner }),
-  post:     (id)           => api.post(`/matches/${id}/post`),
+  list:       (params)       => api.get('/matches', { params }),
+  get:        (id)           => api.get(`/matches/${id}`),
+  create:     (data)         => api.post('/matches', data),
+  close:      (id)           => api.patch(`/matches/${id}/close`),
+  evaluate:   (id, winner)   => api.patch(`/matches/${id}/evaluate`, { winner }),
+  reevaluate: (id, winner)   => api.patch(`/matches/${id}/reevaluate`, { winner }),
+  post:       (id)           => api.post(`/matches/${id}/post`),
+};
+
+export const logs = {
+  list: (params) => api.get('/logs', { params }),
 };
 
 export const settings = {

@@ -12,6 +12,7 @@ import Matchdays   from './pages/Matchdays';
 import Matches     from './pages/Matches';
 import Leaderboard from './pages/Leaderboard';
 import Settings    from './pages/Settings';
+import Logs        from './pages/Logs';
 
 const globalStyles = `
   *, *::before, *::after { box-sizing: border-box; }
@@ -71,6 +72,7 @@ function App() {
           <Route path="matches"      element={<Matches />} />
           <Route path="leaderboard"  element={<Leaderboard />} />
           <Route path="settings"     element={<Settings />} />
+          <Route path="logs"         element={<Logs />} />
           <Route path="*"            element={<Navigate to="/" />} />
         </Route>
       </Routes>

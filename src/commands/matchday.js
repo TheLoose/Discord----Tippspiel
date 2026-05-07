@@ -8,6 +8,7 @@ const {
 } = require('discord.js');
 const { query } = require('../db/database');
 const { isModerator, buildResultEmbed } = require('../utils/helpers');
+const { log } = require('../utils/logger');
 
 // ── Shared evaluation logic (also used by /evaluate) ─────────────────────────
 async function evaluateMatch(client, match, winnerSide) {
@@ -36,6 +37,17 @@ async function evaluateMatch(client, match, winnerSide) {
     'UPDATE matches SET status = ?, winning_team = ? WHERE id = ?',
     ['evaluated', winnerSide, match.id]
   );
+
+  // Log the evaluation
+  const guildId = (await query('SELECT guild_id FROM leagues WHERE id = ?', [match.league_id]))[0]?.guild_id;
+  await log('match_evaluated', guildId, match.id, {
+    team_a:       match.team_a,
+    team_b:       match.team_b,
+    winning_team: winnerSide,
+    winning_name: winnerSide === 'a' ? match.team_a : match.team_b,
+    correct, wrong,
+    evaluated_by: 'bot'
+  });
 
   try {
     const league = { id: match.league_id, name: match.league_name, emoji: match.league_emoji };
