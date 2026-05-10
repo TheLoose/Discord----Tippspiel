@@ -5,15 +5,116 @@ const { requireMod } = require('../middleware/auth');
 
 const getGuildId = req => req.session?.activeGuild?.id;
 
-/**
- * POST /api/import/matches
- * Body: { league_id, rows: [{ matchday, home, away, time }] }
- *
- * For each row:
- * 1. Find or create the matchday
- * 2. Find team by name (case-insensitive, also checks abbreviation-style short names)
- * 3. Insert the match as 'scheduled'
- */
+// ── Helper: parse CSV text into array of trimmed string arrays ────────────────
+function parseCSV(text) {
+  return text.trim().split('\n')
+    .map(line => line.trim().replace(/^["']|["']$/g, ''))
+    .filter(line => line.length > 0)
+    .map(line => {
+      const sep = line.includes(';') ? ';' : ',';
+      return line.split(sep).map(p => p.trim().replace(/^["']|["']$/g, ''));
+    });
+}
+
+// ── Import Leagues ────────────────────────────────────────────────────────────
+router.post('/leagues', requireMod, async (req, res) => {
+  const guildId = getGuildId(req);
+  if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
+  const { csv } = req.body;
+  if (!csv?.trim()) return res.status(400).json({ error: 'csv is required' });
+
+  const rows    = parseCSV(csv);
+  const results = { created: 0, skipped: 0, errors: [] };
+
+  for (const parts of rows) {
+    // Skip header row
+    if (parts[0].toLowerCase() === 'name') continue;
+    if (parts.length < 2) continue;
+
+    const [name, emoji, channelId] = parts;
+    if (!name || !emoji) continue;
+
+    try {
+      // Check for duplicate name in this guild
+      const existing = await query(
+        'SELECT id FROM leagues WHERE guild_id = ? AND name = ?',
+        [guildId, name]
+      );
+      if (existing.length) { results.skipped++; continue; }
+
+      await query(
+        'INSERT INTO leagues (guild_id, name, emoji, channel_id) VALUES (?, ?, ?, ?)',
+        [guildId, name, emoji, channelId || null]
+      );
+      results.created++;
+    } catch (e) {
+      results.errors.push(`"${name}": ${e.message}`);
+      results.skipped++;
+    }
+  }
+
+  res.json(results);
+});
+
+// ── Import Teams ──────────────────────────────────────────────────────────────
+router.post('/teams', requireMod, async (req, res) => {
+  const guildId = getGuildId(req);
+  if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
+  const { league_id, csv } = req.body;
+  if (!csv?.trim()) return res.status(400).json({ error: 'csv is required' });
+
+  const rows    = parseCSV(csv);
+  const results = { created: 0, skipped: 0, errors: [] };
+
+  for (const parts of rows) {
+    if (parts[0].toLowerCase() === 'name') continue;
+    if (parts.length < 3) continue;
+
+    // Format: name;short_name;emoji;league_id(optional)
+    const [name, shortName, emoji, csvLeagueId] = parts;
+    if (!name || !emoji) continue;
+
+    // Resolve league_id: from CSV column, or from the selected league
+    const resolvedLeagueId = csvLeagueId || league_id;
+    if (!resolvedLeagueId) {
+      results.errors.push(`"${name}": no league_id provided`);
+      results.skipped++;
+      continue;
+    }
+
+    // Verify league belongs to this guild
+    const [league] = await query(
+      'SELECT id FROM leagues WHERE id = ? AND guild_id = ?',
+      [resolvedLeagueId, guildId]
+    );
+    if (!league) {
+      results.errors.push(`"${name}": league ${resolvedLeagueId} not found`);
+      results.skipped++;
+      continue;
+    }
+
+    try {
+      const existing = await query(
+        'SELECT team_id FROM teams WHERE name = ? AND league_id = ?',
+        [name, resolvedLeagueId]
+      );
+      if (existing.length) { results.skipped++; continue; }
+
+      await query(
+        'INSERT INTO teams (name, short_name, emoji, league_id) VALUES (?, ?, ?, ?)',
+        [name, shortName?.toUpperCase() || null, emoji, resolvedLeagueId]
+      );
+      results.created++;
+    } catch (e) {
+      results.errors.push(`"${name}": ${e.message}`);
+      results.skipped++;
+    }
+  }
+
+  res.json(results);
+});
+
+// ── Import Matches ────────────────────────────────────────────────────────────
 router.post('/matches', requireMod, async (req, res) => {
   const guildId = getGuildId(req);
   if (!guildId) return res.status(400).json({ error: 'No active guild selected' });
@@ -23,43 +124,33 @@ router.post('/matches', requireMod, async (req, res) => {
     return res.status(400).json({ error: 'league_id and rows are required' });
   }
 
-  // Verify league belongs to this guild
   const [league] = await query('SELECT * FROM leagues WHERE id = ? AND guild_id = ?', [league_id, guildId]);
   if (!league) return res.status(404).json({ error: 'League not found' });
 
-  // Load all teams for this league
   const teams = await query('SELECT * FROM teams WHERE league_id = ? AND active = true', [league_id]);
 
-  // Helper: find team by short_name first, then fall back to name matching
   function findTeam(nameOrAbbr) {
     const n = nameOrAbbr.trim().toLowerCase();
     return (
-      // 1. Exact short_name match (e.g. "GER" → short_name = "GER")
       teams.find(t => t.short_name?.toLowerCase() === n) ||
-      // 2. Exact full name match
       teams.find(t => t.name.toLowerCase() === n) ||
-      // 3. Full name starts with abbreviation
       teams.find(t => t.name.toLowerCase().startsWith(n)) ||
-      // 4. Any word in the name starts with the abbreviation
       teams.find(t => t.name.toLowerCase().split(/\s+/).some(w => w.startsWith(n)))
     );
   }
 
-  const results   = { created: 0, skipped: 0, errors: [] };
-  const matchdayCache = {}; // { number: id }
+  const results       = { created: 0, skipped: 0, errors: [] };
+  const matchdayCache = {};
 
   for (const row of rows) {
     try {
       const { matchday: matchdayNum, home, away, time } = row;
-
-      // Find teams
       const teamA = findTeam(home);
       const teamB = findTeam(away);
 
       if (!teamA) { results.errors.push(`Team not found: "${home}"`); results.skipped++; continue; }
       if (!teamB) { results.errors.push(`Team not found: "${away}"`); results.skipped++; continue; }
 
-      // Find or create matchday
       if (!matchdayCache[matchdayNum]) {
         const [existing] = await query(
           'SELECT * FROM matchdays WHERE league_id = ? AND number = ?',
@@ -76,32 +167,28 @@ router.post('/matches', requireMod, async (req, res) => {
         }
       }
 
-      // Parse date — format: "15-05-2026 16:20" → convert to UTC from Europe/Berlin
       let matchDate = null;
       if (time) {
         const [datePart, timePart] = time.split(' ');
         const [day, month, year]   = datePart.split('-');
         const isoStr = `${year}-${month}-${day}T${timePart}:00`;
-        // Treat as Europe/Berlin time
-        const naive = new Date(isoStr + 'Z');
-        const formatter = new Intl.DateTimeFormat('en-US', {
+        const naive  = new Date(isoStr + 'Z');
+        const fmt    = new Intl.DateTimeFormat('en-US', {
           timeZone: 'Europe/Berlin',
           year: 'numeric', month: '2-digit', day: '2-digit',
           hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
         });
-        const parts    = formatter.formatToParts(naive);
-        const get      = type => parseInt(parts.find(p => p.type === type).value);
-        const localEquiv = new Date(Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')));
-        const offsetMs   = localEquiv - naive;
-        matchDate = new Date(naive.getTime() - offsetMs);
+        const pts    = fmt.formatToParts(naive);
+        const get    = t => parseInt(pts.find(p => p.type === t).value);
+        const loc    = new Date(Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second')));
+        matchDate = new Date(naive.getTime() - (loc - naive));
       }
 
-      // Check for duplicate
-      const [duplicate] = await query(
+      const [dup] = await query(
         'SELECT id FROM matches WHERE league_id = ? AND team_a_id = ? AND team_b_id = ? AND match_date = ?',
         [league_id, teamA.team_id, teamB.team_id, matchDate]
       );
-      if (duplicate) { results.skipped++; continue; }
+      if (dup) { results.skipped++; continue; }
 
       await query(
         `INSERT INTO matches (league_id, matchday_id, team_a_id, team_b_id, match_date, status)
@@ -109,7 +196,6 @@ router.post('/matches', requireMod, async (req, res) => {
         [league_id, matchdayCache[matchdayNum], teamA.team_id, teamB.team_id, matchDate]
       );
       results.created++;
-
     } catch (e) {
       results.errors.push(`Row error: ${e.message}`);
       results.skipped++;

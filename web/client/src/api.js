@@ -57,6 +57,8 @@ export const settings = {
 };
 
 export const importApi = {
+  leagues: (csv)             => api.post('/import/leagues', { csv }),
+  teams:   (league_id, csv)  => api.post('/import/teams',   { league_id, csv }),
   matches: (league_id, rows) => api.post('/import/matches', { league_id, rows }),
 };
 
