@@ -100,7 +100,7 @@ export default function Layout() {
           {user?.avatar && <img src={user.avatar} alt="" style={{ width: 32, height: 32, borderRadius: '50%', flexShrink: 0 }} />}
           <div style={{ minWidth: 0 }}>
             <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.username}</div>
-            <div style={{ color: '#888', fontSize: 11 }}>{user?.isMod ? '🛡️ Moderator' : '👤 Viewer'}</div>
+            <div style={{ color: '#888', fontSize: 11 }}>{user?.isMod ? '🛡️ Admin' : '👤 Viewer'}</div>
           </div>
           <button onClick={logout} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 18, flexShrink: 0 }} title="Logout">↩</button>
         </div>
