@@ -26,7 +26,7 @@ function buildMatchEmbed(match, league) {
       `## ${match.team_a_emoji} ${match.team_a}  vs  ${match.team_b} ${match.team_b_emoji}\n\n` +
       `React with ${match.team_a_emoji} to vote for **${match.team_a}**\n` +
       `React with ${match.team_b_emoji} to vote for **${match.team_b}**` +
-      (dateDisplay ? `\n\n🕐 **Kickoff: ${dateDisplay}**` : '')
+      (dateDisplay ? `\n\n🕐 **Puck drop: ${dateDisplay}**` : '')
     )
     .setFooter({ text: `Match ID: ${match.id} • Voting is open!` })
     .setTimestamp(match.match_date ? new Date(match.match_date) : null);
