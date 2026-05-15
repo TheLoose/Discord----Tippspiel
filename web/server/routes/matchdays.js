@@ -60,5 +60,23 @@ router.patch('/:id/close', requireMod, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST post all scheduled matches in a matchday to Discord immediately
+router.post('/:id/post', requireMod, async (req, res) => {
+  const secret = process.env.INTERNAL_SECRET;
+  const port   = process.env.INTERNAL_PORT ?? 3002;
+  const host   = process.env.BOT_INTERNAL_HOST ?? '127.0.0.1';
+  try {
+    const result = await axios.post(
+      `http://${host}:${port}/post-matchday`,
+      { matchdayId: parseInt(req.params.id) },
+      { headers: { 'x-internal-secret': secret }, timeout: 30000 }
+    );
+    res.json(result.data);
+  } catch (e) {
+    const msg = e.response?.data?.error ?? e.message;
+    console.error('post-matchday error:', msg);
+    res.status(500).json({ error: msg });
+  }
+});
 
 module.exports = router;

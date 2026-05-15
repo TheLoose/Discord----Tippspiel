@@ -286,7 +286,7 @@ router.post('/:id/post', requireMod, async (req, res) => {
     const result = await axios.post(
       `http://${host}:${port}/post-match`,
       { matchId: parseInt(req.params.id) },
-      { headers: { 'x-internal-secret': secret } }
+      { headers: { 'x-internal-secret': secret }, timeout: 30000 }
     );
     res.json(result.data);
   } catch (e) {
