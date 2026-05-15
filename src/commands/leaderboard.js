@@ -40,7 +40,7 @@ module.exports = {
     const lines = rows.map((row, i) => {
       const medal    = MEDALS[i] ?? `**${i + 1}.**`;
       const accuracy = row.total_votes > 0 ? Math.round((row.correct / row.total_votes) * 100) : 0;
-      return `${medal} **${row.username}** — ${row.total} pts · ${row.correct}/${row.total_votes} correct (${accuracy}%)`;
+      return `${medal} **${row.username}** — ${row.total} pts`;
     });
 
     const embed = new EmbedBuilder()
