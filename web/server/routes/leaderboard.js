@@ -13,7 +13,7 @@ router.get('/:league_id', requireAuth, async (req, res) => {
        FROM points p
        JOIN leagues l ON p.league_id = l.id
        WHERE p.league_id = ? AND p.guild_id = ?
-       ORDER BY p.total DESC, p.correct DESC
+       ORDER BY p.total_votes DESC, p.correct DESC
        LIMIT 50`,
       [req.params.league_id, guildId]
     );
