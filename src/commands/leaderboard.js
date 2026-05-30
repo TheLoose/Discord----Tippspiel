@@ -26,7 +26,7 @@ module.exports = {
     const rows = await query(
       `SELECT username, total, correct, total_votes
        FROM points WHERE league_id = ? AND guild_id = ?
-       ORDER BY total_votes DESC, correct DESC LIMIT 10`,
+       ORDER BY correct DESC, total_votes DESC LIMIT 10`,
       [leagueId, guildId]
     );
 
