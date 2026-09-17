@@ -29,7 +29,8 @@ async function postTodaysMatches(client) {
      WHERE DATE(CONVERT_TZ(m.match_date, '+00:00', ?)) = DATE(CONVERT_TZ(NOW(), '+00:00', ?))
        AND m.status = 'scheduled'
        AND m.discord_message_id IS NULL
-     ORDER BY m.match_date ASC`,
+     ORDER BY m.league_id,
+              m.match_date ASC`,
     [tz, tz]
   );
 
