@@ -3,6 +3,7 @@ const { query } = require('../db/database');
 const { buildMatchEmbed, parseEmoji } = require('./helpers');
 const { EmbedBuilder } = require('discord.js');
 const { log } = require('./logger');
+let lastLeaugeId = null;
 
 /**
  * Posts all matches scheduled for today that haven't been posted yet.
@@ -76,6 +77,16 @@ async function postMatch(client, match) {
     team_b_emoji: match.team_b_emoji,
     match_date:   match.match_date
   };
+
+  if (lastLeaugeId !== match.league_id) {
+    console.log(`🕛 Scheduler: posting matches for ${match.league_name}`);
+    lastLeaugeId = match.league_id;
+
+    const leagueMsg = await client.channels
+      .fetch(channelId)
+      .then(channel => channel.send({ embeds: [new EmbedBuilder().setTitle(`${match.league_emoji} -  ${match.league_name}`)] }));
+
+  }
 
   const channel = await client.channels.fetch(channelId);
   const embed   = buildMatchEmbed(matchForEmbed, league);
